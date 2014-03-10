@@ -13,8 +13,7 @@ module Ironfan
             :new_record?, :owner_id, :owner_id=, :reload, :requires,
             :requires_one, :revoke_group_and_owner, :revoke_port_range, :save,
             :symbolize_keys, :wait_for, :name,
-            :create_security_group_rule,
-            :rules,
+            :security_group_rules,
           :to => :adaptee
 
         def self.shared?()      true;   end
@@ -209,7 +208,13 @@ module Ironfan
             end
           elsif options[:ip_protocol]
             self.patiently(fog_group.name, Excon::Errors::HTTPStatusError, :ignore => Proc.new { |e| e.message =~ /This rule already exists in group/ }) do
-              fog_group.create_security_group_rule(range.min, range.max, options[:ip_protocol], options[:cidr_ip], options[:group])
+              fog_group.security_group_rules.create(
+                  :from_port => range.min,
+                  :to_port => range.max,
+                  :ip_protocol => options[:ip_protocol],
+                  :ip_range => options[:cidr_ip],
+                  :parent_group_id => fog_group.group_id
+              )
             end 
           else
             safely_authorize(fog_group,range,options.merge(:ip_protocol => 'tcp'))
